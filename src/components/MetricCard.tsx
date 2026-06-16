@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { TrendingUp, TrendingDown, FileText, Compass } from 'lucide-react';
 import { Transaction, BudgetConfig } from '../utils/db';
 
@@ -28,6 +29,38 @@ export default function MetricCard({ transactions, budget }: MetricCardProps) {
   const isUp = true;
   const trendPercent = 8.2;
 
+  // Number counters
+  const spendCount = useMotionValue(0);
+  const formattedSpend = useTransform(spendCount, (latest) => 
+    latest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  );
+
+  const budgetCount = useMotionValue(0);
+  const formattedBudget = useTransform(budgetCount, (latest) => 
+    latest.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  );
+
+  // SVG Gauge Animation
+  const [gaugeOffset, setGaugeOffset] = useState(251.2);
+
+  useEffect(() => {
+    // Run spend counter
+    const spendAnim = animate(spendCount, totalSpend, { duration: 1.5, ease: 'easeOut' });
+    // Run budget counter
+    const budgetAnim = animate(budgetCount, remainingBudget, { duration: 1.5, ease: 'easeOut' });
+    
+    // Trigger gauge fill after a small delay
+    const timeout = setTimeout(() => {
+      setGaugeOffset(251.2 - (251.2 * remainingPercent) / 100);
+    }, 200);
+
+    return () => {
+      spendAnim.stop();
+      budgetAnim.stop();
+      clearTimeout(timeout);
+    };
+  }, [totalSpend, remainingBudget, remainingPercent]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
       {/* Spend Card */}
@@ -41,9 +74,10 @@ export default function MetricCard({ transactions, budget }: MetricCardProps) {
         </div>
         
         <div className="flex items-baseline">
-          <span className="font-bold text-3xl tracking-tight text-foreground">
-            ${totalSpend.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+          <span className="font-bold text-3xl tracking-tight text-foreground">$</span>
+          <motion.span className="font-bold text-3xl tracking-tight text-foreground">
+            {formattedSpend}
+          </motion.span>
         </div>
 
         {/* Micro Sparkline Chart */}
@@ -53,9 +87,11 @@ export default function MetricCard({ transactions, budget }: MetricCardProps) {
             const heights = ['25%', '40%', '30%', '55%', '85%', '60%', '45%', '30%', '70%', '90%', '50%', '35%', '65%', '100%'];
             const height = heights[i % heights.length];
             return (
-              <div
+              <motion.div
                 key={i}
-                style={{ height }}
+                initial={{ height: 0 }}
+                animate={{ height }}
+                transition={{ duration: 1, delay: i * 0.05, ease: 'easeOut' }}
                 className="flex-1 bg-primary/20 hover:bg-primary/50 transition-colors rounded-t-sm"
               />
             );
@@ -98,9 +134,12 @@ export default function MetricCard({ transactions, budget }: MetricCardProps) {
       <div className="glass-card rounded-xl p-6 flex items-center justify-between gap-4">
         <div className="flex-1">
           <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground mb-1">REMAINING BUDGET</p>
-          <span className="font-bold text-2xl tracking-tight text-foreground">
-            ${remainingBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+          <div className="flex items-baseline">
+            <span className="font-bold text-2xl tracking-tight text-foreground">$</span>
+            <motion.span className="font-bold text-2xl tracking-tight text-foreground">
+              {formattedBudget}
+            </motion.span>
+          </div>
           <p className="text-xs text-muted-foreground mt-1.5 italic font-medium leading-tight">
             Of ${monthlyLimit.toLocaleString('en-US')} total budget limit
           </p>
@@ -120,8 +159,8 @@ export default function MetricCard({ transactions, budget }: MetricCardProps) {
               strokeWidth="7"
             />
             {/* Foreground Progress Ring */}
-            <circle
-              className="text-primary transition-all duration-500"
+            <motion.circle
+              className="text-primary"
               cx="50"
               cy="50"
               r="40"
@@ -129,7 +168,8 @@ export default function MetricCard({ transactions, budget }: MetricCardProps) {
               stroke="currentColor"
               strokeWidth="7"
               strokeDasharray="251.2"
-              strokeDashoffset={251.2 - (251.2 * remainingPercent) / 100}
+              animate={{ strokeDashoffset: gaugeOffset }}
+              transition={{ duration: 1.5, ease: 'easeOut' }}
               strokeLinecap="round"
             />
           </svg>

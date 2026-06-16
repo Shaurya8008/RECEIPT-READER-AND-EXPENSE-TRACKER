@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Eye, FileText, CheckCircle, RefreshCw, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { Transaction, ExpenseCategory, TransactionItem } from '../utils/db';
 
@@ -195,7 +196,7 @@ export default function Scanner({ onAddTransaction, setCurrentTab }: ScannerProp
 
             {/* Laser Line Overlay for Scanning */}
             {isScanning && image && (
-              <div className="absolute inset-x-0 h-0.5 bg-primary/80 primary-glow laser-line z-20" />
+              <div className="absolute inset-x-0 top-0 h-32 scanner-beam z-20 pointer-events-none" />
             )}
 
             {image ? (
@@ -248,15 +249,22 @@ export default function Scanner({ onAddTransaction, setCurrentTab }: ScannerProp
             </button>
           )}
 
-          {isScanning && (
-            <div className="glass-card rounded-xl p-6 flex items-center gap-4 border-primary/20">
-              <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-foreground text-sm">Processing Receipt Image</p>
-                <p className="text-xs text-primary font-medium mt-1 pulse-glow-effect">{scanStep}</p>
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {isScanning && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="glass-card rounded-xl p-6 flex items-center gap-4 border-primary/20"
+              >
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-foreground text-sm">Processing Receipt Image</p>
+                  <p className="text-xs text-primary font-medium mt-1 pulse-glow-effect">{scanStep}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-xs rounded-xl p-4 flex items-start gap-3">

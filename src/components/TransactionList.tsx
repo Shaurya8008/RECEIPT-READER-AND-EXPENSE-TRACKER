@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText, Trash2, Calendar, ShoppingBag, ArrowRight, X, Eye } from 'lucide-react';
+import { FileText, Trash2, Calendar, ShoppingBag, ArrowRight, X, Eye, Download } from 'lucide-react';
 import { Transaction, ExpenseCategory } from '../utils/db';
 
 interface TransactionListProps {
@@ -14,6 +14,8 @@ export default function TransactionList({ transactions, onDelete, searchQuery }:
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
 
   const categories: ExpenseCategory[] = ['Food', 'Tech', 'Travel', 'Health', 'Luxury', 'Utilities', 'Misc'];
 
@@ -26,9 +28,36 @@ export default function TransactionList({ transactions, onDelete, searchQuery }:
 
     const matchesCategory = categoryFilter === 'all' || tx.category === categoryFilter;
     const matchesStatus = statusFilter === 'all' || tx.status === statusFilter;
+    const matchesDateFrom = dateFrom ? new Date(tx.date) >= new Date(dateFrom) : true;
+    const matchesDateTo = dateTo ? new Date(tx.date) <= new Date(dateTo) : true;
 
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesCategory && matchesStatus && matchesDateFrom && matchesDateTo;
   });
+
+  const exportToCSV = () => {
+    const headers = ['Merchant', 'Date', 'Category', 'Amount', 'Status'];
+    const rows = filtered.map(tx => [
+      `"${tx.merchant.replace(/"/g, '""')}"`,
+      tx.date,
+      tx.category,
+      tx.amount,
+      tx.status
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'receiptify_export.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Style helper for Category badges
   const categoryStyles: Record<ExpenseCategory, { bg: string; text: string }> = {
@@ -60,6 +89,21 @@ export default function TransactionList({ transactions, onDelete, searchQuery }:
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Date Range Filters */}
+          <input 
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            className="bg-[#0d122d]/60 border border-white/5 text-xs text-foreground px-3 py-1.5 rounded-lg focus:outline-none focus:border-primary cursor-pointer transition-colors"
+          />
+          <span className="text-muted-foreground text-xs">-</span>
+          <input 
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            className="bg-[#0d122d]/60 border border-white/5 text-xs text-foreground px-3 py-1.5 rounded-lg focus:outline-none focus:border-primary cursor-pointer transition-colors"
+          />
+
           {/* Category Filter */}
           <select
             value={categoryFilter}
@@ -84,6 +128,15 @@ export default function TransactionList({ transactions, onDelete, searchQuery }:
             <option value="Completed">Completed</option>
             <option value="Pending">Pending</option>
           </select>
+
+          {/* Export Button */}
+          <button 
+            onClick={exportToCSV}
+            className="bg-primary/20 text-primary border border-primary/20 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary/30 transition-colors flex items-center gap-1 cursor-pointer ml-1"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { LayoutDashboard, Receipt, Scan, Settings, HelpCircle, LogOut } from 'lucide-react';
 
 interface SidebarProps {
@@ -36,14 +37,21 @@ export default function Sidebar({ currentTab, setCurrentTab }: SidebarProps) {
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 active:scale-98 group cursor-pointer ${
+              className={`relative w-full flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 active:scale-98 group cursor-pointer ${
                 isActive
-                  ? 'text-primary bg-primary/10'
+                  ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
               }`}
             >
-              <Icon className={`h-5 w-5 transition-transform duration-200 ${isActive ? 'stroke-[2.2]' : 'group-hover:scale-105'}`} />
-              <span>{item.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="sidebar-pill"
+                  className="absolute inset-0 bg-primary/10 rounded-lg"
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <Icon className={`relative z-10 h-5 w-5 transition-transform duration-200 ${isActive ? 'stroke-[2.2]' : 'group-hover:scale-105'}`} />
+              <span className="relative z-10">{item.label}</span>
             </button>
           );
         })}

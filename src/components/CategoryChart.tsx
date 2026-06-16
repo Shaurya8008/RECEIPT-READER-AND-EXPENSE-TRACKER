@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Transaction, ExpenseCategory } from '../utils/db';
 
 interface CategoryChartProps {
@@ -32,15 +34,15 @@ export default function CategoryChart({ transactions }: CategoryChartProps) {
   const maxAmount = Math.max(...chartData.map((d) => d.amount), 10);
   const totalCompletedSpend = chartData.reduce((sum, d) => sum + d.amount, 0);
 
-  // Map category to aesthetic CSS indicators or icons
+  // Map category to hex colors for Recharts
   const categoryColors: Record<ExpenseCategory, string> = {
-    Food: 'bg-primary/70',
-    Tech: 'bg-primary',
-    Travel: 'bg-primary/50',
-    Health: 'bg-emerald-400',
-    Luxury: 'bg-emerald-600',
-    Utilities: 'bg-primary/30',
-    Misc: 'bg-primary/20',
+    Food: '#818CF8',      // primary
+    Tech: '#6366F1',      // indigo-500
+    Travel: '#A5B4FC',    // indigo-300
+    Health: '#34D399',    // emerald-400
+    Luxury: '#059669',    // emerald-600
+    Utilities: '#4F46E5', // indigo-600
+    Misc: '#C7D2FE',      // indigo-200
   };
 
   return (
@@ -67,51 +69,42 @@ export default function CategoryChart({ transactions }: CategoryChartProps) {
         </div>
       </div>
 
-      {/* Main Bar Chart */}
-      <div className="flex items-end justify-between h-64 gap-3 sm:gap-4 px-2 pt-8">
-        {chartData.map((d) => {
-          const heightPercent = `${Math.max(5, Math.round((d.amount / maxAmount) * 85))}%`;
-          const sharePercent = totalCompletedSpend > 0 ? Math.round((d.amount / totalCompletedSpend) * 100) : 0;
-          const isHovered = hoveredCategory === d.category;
-
-          return (
-            <div
-              key={d.category}
-              className="flex-1 flex flex-col items-center gap-3 h-full justify-end group cursor-pointer"
-              onMouseEnter={() => setHoveredCategory(d.category)}
-              onMouseLeave={() => setHoveredCategory(null)}
+      {/* Main Donut Chart */}
+      <div className="h-64 mt-4 relative">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={chartData.filter(d => d.amount > 0)}
+              cx="50%"
+              cy="50%"
+              innerRadius={70}
+              outerRadius={100}
+              paddingAngle={5}
+              dataKey="amount"
+              nameKey="category"
+              stroke="none"
+              animationBegin={0}
+              animationDuration={1000}
+              animationEasing="ease-out"
             >
-              {/* Tooltip & Bar container */}
-              <div className="w-full flex flex-col items-center justify-end relative h-full">
-                {/* Floating tooltip */}
-                <div
-                  className={`absolute -top-10 bg-muted border border-white/10 text-[10px] px-2 py-1.5 rounded-lg shadow-xl flex flex-col items-center transition-all duration-200 pointer-events-none z-10 ${
-                    isHovered ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-95'
-                  }`}
-                >
-                  <span className="font-bold text-foreground">${d.amount.toFixed(2)}</span>
-                  <span className="text-primary font-medium text-[8px] mt-0.5">{sharePercent}% Share</span>
-                </div>
+              {chartData.filter(d => d.amount > 0).map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={categoryColors[entry.category]} />
+              ))}
+            </Pie>
+            <Tooltip 
+              formatter={(value: number) => [`$${value.toFixed(2)}`, 'Amount']}
+              contentStyle={{ backgroundColor: '#070b19', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+              itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+              labelStyle={{ color: '#94a3b8' }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
 
-                {/* Animated Bar */}
-                <div
-                  style={{ height: heightPercent }}
-                  className={`w-full rounded-t-lg transition-all duration-500 ease-out relative overflow-hidden ${
-                    categoryColors[d.category]
-                  } ${isHovered ? 'brightness-125 scale-x-105' : ''}`}
-                >
-                  {/* Subtle inner linear gradient glow */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/10" />
-                </div>
-              </div>
-
-              {/* Label */}
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-foreground transition-colors">
-                {d.category}
-              </span>
-            </div>
-          );
-        })}
+        {/* Center Text */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Total</span>
+          <span className="text-xl font-bold text-foreground mt-0.5">${totalCompletedSpend.toFixed(2)}</span>
+        </div>
       </div>
 
       {/* Legend & Breakdown summary */}
